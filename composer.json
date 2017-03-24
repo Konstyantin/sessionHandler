@@ -1,0 +1,15 @@
+{
+    "name": "root/session-handler",
+    "authors": [
+        {
+            "name": "Konstantin",
+            "email": "kostyannagula@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    }
+}
