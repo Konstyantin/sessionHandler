@@ -40,12 +40,12 @@ class SessionHandle implements \SessionHandlerInterface
      * @param \Redis $redis
      * @param string $prefix
      */
-    public function __construct(\Redis $redis, $prefix = 'PHPREDIS_SESSION: ')
+    public function __construct(\Redis $redis, $prefix = 'PHPREDIS_SESSION: ', $lifetime = 1440)
     {
         $this->redis = $redis;
         $this->prefix = $prefix;
 
-        $this->ttl = ini_get('session.gc_maxlifetime');
+        $this->ttl = $lifetime;
     }
 
     /**
@@ -61,8 +61,7 @@ class SessionHandle implements \SessionHandlerInterface
      */
     public function close()
     {
-        $this->redis = null;
-        unset($this->redis);
+        return true;
     }
 
     /**
@@ -78,9 +77,10 @@ class SessionHandle implements \SessionHandlerInterface
      */
     public function destroy($session_id)
     {
-        $key = $this->prefix . $session_id;
+        $key = $this->getRedisKey($session_id);
+        $this->redis->del($key);
 
-        return $this->redis->del($key);
+        return true;
     }
 
     /**
@@ -88,9 +88,8 @@ class SessionHandle implements \SessionHandlerInterface
      */
     public function read($session_id)
     {
-        $key = $this->prefix . $session_id;
+        $key = $this->getRedisKey($session_id);
 
-        $this->redis->expire($key, $this->ttl);
         return $this->redis->get($key);
     }
 
@@ -99,8 +98,31 @@ class SessionHandle implements \SessionHandlerInterface
      */
     public function write($session_id, $session_data)
     {
-        $key = $this->prefix . $session_id;
+        $key = $this->getRedisKey($session_id);
+
+        $this->redis->expire($key, $this->ttl);
 
         $this->redis->set($key, $session_data);
+
+        return true;
+    }
+
+    /**
+     * Get session key
+     *
+     * @param string $id
+     * @return string
+     */
+    protected function getRedisKey(string $id)
+    {
+        return $this->prefix . $id;     // PHPREDIS_SESSION . session_id
+    }
+
+    /**
+     * SessionHandler destructor magic method
+     */
+    public function __destruct()
+    {
+        $this->close();
     }
 }

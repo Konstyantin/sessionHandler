@@ -14,16 +14,10 @@ ini_set('xdebug.var_display_max_children', -1);
 ini_set('xdebug.var_display_max_data', 1024);
 
 require_once __DIR__ . '/vendor/autoload.php';
-
 use App\Session\SessionHandle;
+use App\Session\SessionManager;
 
-$redis = new Redis();
-$redis->connect('dcodeit.net');
+use App\Redis\RedisClient;
 
-session_start();
-
-session_save_path('tcp://127.0.0.1:6379');
-
-$handler = new SessionHandle($redis);
-
-session_set_save_handler($handler, true);
+$redis = new RedisClient();
+$session = new SessionManager($redis);
