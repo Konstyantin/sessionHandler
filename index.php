@@ -16,8 +16,12 @@ ini_set('xdebug.var_display_max_data', 1024);
 require_once __DIR__ . '/vendor/autoload.php';
 use App\Session\SessionHandle;
 use App\Session\SessionManager;
-
 use App\Redis\RedisClient;
+//use Katzgrau\KLogger\Logger;
+use App\Logger\Logger;
 
 $redis = new RedisClient();
 $session = new SessionManager($redis);
+
+$logger = new Logger(__DIR__ . '/logs');
+$logger->error('errasd');
