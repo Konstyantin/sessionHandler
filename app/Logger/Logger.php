@@ -9,31 +9,36 @@
 namespace App\Logger;
 
 use Psr\Log\AbstractLogger;
-use RuntimeException;
-use Psr\Log\LogLevel;
 use DateTime;
-
 
 /**
  * Class Logger
+ *
+ * Component for work with logs
  * @package App\Logger
  */
 class Logger extends AbstractLogger
 {
     /**
-     * Core options include the log file path and the log threshold
+     * Prefix which to use when generate name for logfile
      *
-     * @var array $options
+     * @var string
      */
-    protected $options = array (
-        'extension'      => 'txt',          // default extension
-        'dateFormat'     => 'Y-m-d G:i:s',  // default datetime format
-        'filename'       => false,
-        'flushFrequency' => false,
-        'prefix'         => 'log_',         // prefix filename
-        'logFormat'      => false,
-        'appendContext'  => true,
-    );
+    private $prefix = 'log_';
+
+    /**
+     * File name for logfile
+     *
+     * @var bool
+     */
+    private $filename = false;
+
+    /**
+     * Extension log file
+     *
+     * @var string $extension
+     */
+    private $extension = 'txt';
 
     /**
      * Path to file
@@ -43,116 +48,153 @@ class Logger extends AbstractLogger
     private $logFilePath;
 
     /**
-     * @var string
-     */
-    protected $logLevelThreshold = LogLevel::DEBUG;
-
-    /**
-     * @var int
-     */
-    protected $logLineCount = 0;
-
-    /**
-     * Log level
+     * This holds the file handle for this instance's log file
      *
-     * @var array
+     * @var resource $fileHandler
      */
-    protected $logLevels = [
-        LogLevel::EMERGENCY => 0,
-        LogLevel::ALERT     => 1,
-        LogLevel::CRITICAL  => 2,
-        LogLevel::ERROR     => 3,
-        LogLevel::WARNING   => 4,
-        LogLevel::NOTICE    => 5,
-        LogLevel::INFO      => 6,
-        LogLevel::DEBUG     => 7
-    ];
-
     private $fileHandler;
-
-    /**
-     * @var string
-     */
-    private $lastLine = '';
 
     /**
      * Default permission of the log file
      *
-     * @var int
+     * @var int $permission
      */
-    private $defaultPermission = 0777;
+    private $permission = 0777;
+
+    /**
+     * Date format for log message
+     *
+     * @var string $dateFormat
+     */
+    private $dateFormat = 'Y-m-d G:i:s';
+
+    /**
+     * This holds the last line logged to the logger
+     *
+     * @var string $lastLine
+     */
+    private $lastLine = '';
+
+    /**
+     * The number of lines logged in this instance's
+     *
+     * @var int $logLineCount
+     */
+    protected $logLineCount = 0;
 
     /**
      * Logger constructor.
      *
      * @param $logDirectory
-     * @param string $logLevelThreshold
      * @param array $options
      */
-    public function __construct($logDirectory, $logLevelThreshold = LogLevel::DEBUG, $options = [])
+    public function __construct($logDirectory, $options = [])
     {
-        $this->logLevelThreshold = $logLevelThreshold;
-
-        $this->options = array_merge($this->options, $options); // combine default and new options
-
-        $logDirectory = rtrim($logDirectory, DIRECTORY_SEPARATOR); // delete dir separ '/' end line
-
         // if dir do not exist create new dir /logs
         $this->setLogDir($logDirectory);
 
-        $this->setLoggerWritable($logDirectory);
+        // set path to lo file and file mode
+        $this->setLogParam($logDirectory);
     }
 
     /**
-     * @param $logDirectory
+     * Set file name for log file
+     *
+     * @param string $name
      */
-    public function setLoggerWritable($logDirectory)
+    public function setFileName(string $name)
     {
-        if (strpos($logDirectory, 'php://') === 0) {
-            $this->setLogToStdOut($logDirectory);
-            $this->setFileHandler('w+');
-        } else {
-            $this->setLogFilePath($logDirectory);
-
-            $this->setFileHandler('a');
-        }
+        $this->filename = $name;
     }
+
+    /**
+     * Set data format for log message date
+     *
+     * @param string $format
+     */
+    public function setDateFormat(string $format)
+    {
+        $this->dateFormat = $format;
+    }
+
+    /**
+     * Set extension for log file
+     *
+     * @param string $extension
+     */
+    public function setExtension($extension)
+    {
+        $this->extension = $extension;
+    }
+
+    /**
+     * Set permission for log file
+     *
+     * @param int $permission
+     */
+    public function setPermission($permission)
+    {
+        $this->permission = $permission;
+    }
+
+    /**
+     * Get the date and time in the specified format
+     *
+     * Format date and time set setting in $options property
+     *
+     * @return string
+     */
+    public function getTimestamp()
+    {
+        // generate date time
+        $date = new DateTime(date('Y-m-d H:i:s')); // 2017-03-26 19:37:54.449841
+
+        return $date->format($this->dateFormat);
+    }
+
+    /**
+     * Set log param
+     *
+     * @param string $logDir
+     */
+    protected function setLogParam(string $logDir)
+    {
+        $this->setLogFilePath($logDir); // path to log file
+        $this->setFileHandler('a');     // open only for writing
+    }
+
     /**
      * Set directory for store file for logs
      *
-     * @param $dir
+     * @param string $logDir
      */
-    public function setLogDir($dir)
+    protected function setLogDir(string $logDir)
     {
-        if (!$this->checkExistFile($dir)) {
-            $this->createDir($dir);
-        }
-    }
+        // path to log directory
+        $logDir = rtrim($logDir, DIRECTORY_SEPARATOR); // delete dir separ '/' end line
 
-    public function setLogToStdOut(string $stdOutPath)
-    {
-        $this->logFilePath = $stdOutPath;
+        //check exist directory
+        if (!$this->checkExistFile($logDir)) {
+            $this->createDir($logDir); // create new directory for logfile
+        }
     }
 
     /**
      * Set path to save log file
      *
-     * @param string $logDirectory
+     * Check set custom name for log file, if name is not set generate with set prefix data, date and set extension
+     *
+     * @param string $logDir
      */
-    public function setLogFilePath($logDirectory) {
-        if ($this->options['filename']) { // check set default extension
-
-            $logExtension = strpos($this->options['filename'], '.log');
-            $txtExtension = strpos($this->options['filename'], '.txt');
-
-            if ($logExtension || $txtExtension) {
-                $this->logFilePath = $logDirectory . DIRECTORY_SEPARATOR . $this->options['filename'];
-            } else {
-                $this->logFilePath = $logDirectory . DIRECTORY_SEPARATOR . $this->options['filename'] . '.' . $this->options['extension'];
-            }
-
+    protected function setLogFilePath(string $logDir)
+    {
+        // check set custom file name
+        if ($this->filename) {
+            // generate name log file if file name set custom
+            $this->logFilePath = $logDir . DIRECTORY_SEPARATOR . $this->filename . '.' . $this->extension;
         } else {
-            $this->logFilePath = $logDirectory . DIRECTORY_SEPARATOR . $this->options['prefix'] . date('Y-m-d') . '.' . $this->options['extension'];
+            // generate name log file if filename no set
+            $this->logFilePath = $logDir . DIRECTORY_SEPARATOR . $this->prefix . date('Y-m-d') . '.' . $this->extension;
         }
     }
 
@@ -160,6 +202,7 @@ class Logger extends AbstractLogger
      * Check exists select file
      *
      * @param string $path
+     *
      * @return bool
      */
     public function checkExistFile(string $path)
@@ -172,60 +215,45 @@ class Logger extends AbstractLogger
      *
      * @param string $path
      */
-    public function createDir(string $path)
+    protected function createDir(string $path)
     {
-        mkdir($path, $this->defaultPermission, true);
+        mkdir($path, $this->permission, true);
     }
 
     /**
      * Set file handler
      *
-     * @param string $writeMode
+     * @param string $mode
      */
-    public function setFileHandler(string $writeMode)
+    protected function setFileHandler(string $mode)
     {
-        $this->fileHandler = fopen($this->logFilePath, $writeMode);
+        $this->fileHandler = fopen($this->logFilePath, $mode);
     }
 
     /**
-     * Check writable select file
+     * Get the file path that the log is currently writing to
      *
-     * @param string $file
-     * @return bool
+     * @return string
      */
-    public function isWritableFile(string $file)
+    protected function getLogFilePath()
     {
-        return is_writable($file);
+        return $this->logFilePath;
     }
 
     /**
-     * Destructor
-     */
-    public function __destruct()
-    {
-        if ($this->fileHandler) {
-            fclose($this->fileHandler);
-        }
-    }
-
-    /**
-     * Set data format
+     * Set format log message
      *
-     * @param string $format
-     */
-    public function setDateFormat(string $format)
-    {
-        $this->options['dateFormat'] = $format;
-    }
-
-    /**
-     * Set log level
+     * @param $level
+     * @param $message
      *
-     * @param $logLevel
+     * @return string
      */
-    public function setLogLevel($logLevel)
+    protected function formatMessage($level, $message)
     {
-        $this->logLevel = $logLevel;
+        $message = '[' . $this->getTimestamp() . ']' . '[' . $level . ']' . '[' . $message . ']';
+
+        // [date time][level][message] message format
+        return $message . PHP_EOL;
     }
 
     /**
@@ -237,15 +265,12 @@ class Logger extends AbstractLogger
      *
      * @return void
      */
-    public function log($level, $message, array $context = array())
+    public function log($level, $message, array $context = [])
     {
-        if ($this->logLevels[$this->logLevelThreshold] < $this->logLevels[$level]) {
-            return;
-        }
+        // generate message log [date time][level][message]
+        $message = $this->formatMessage($level, $message);
 
-        // generate message log
-        $message = $this->formatMessage($level, $message, $context);
-
+        // write massage into log file
         $this->write($message);
     }
 
@@ -254,137 +279,13 @@ class Logger extends AbstractLogger
      *
      * @param $message
      */
-    public function write($message)
+    protected function write($message)
     {
-        if ($this->fileHandler !== null) {
-            if (fwrite($this->fileHandler, $message) === true) {
-
-                $this->lastLine = trim($message);
-                $this->logLineCount++;
-
-                if ($this->options['flushFrequency'] && $this->logLineCount) {
-                    fflush($this->fileHandler);
-                }
+        if ($this->fileHandler) {
+            if (!fwrite($this->fileHandler, $message)) {    // check writes the contents to the file
+                $this->lastLine = trim($message);           // strip whitespace from the beginning and end of a string
+                $this->logLineCount++;                      // increment log count line number
             }
         }
-    }
-
-    /**
-     * Get the file path that the log is currently writing to
-     *
-     * @return string
-     */
-    public function getLogFilePath()
-    {
-        return $this->logFilePath;
-    }
-
-    /**
-     * Get the last line logged to the log file
-     *
-     * @return string
-     */
-    public function getLastLogLine()
-    {
-        return $this->lastLine;
-    }
-
-    /**
-     * Set format log message
-     *
-     * @param $level
-     * @param $message
-     * @param $context
-     * @return string
-     */
-    public function formatMessage($level, $message, $context)
-    {
-        if ($this->options['logFormat']) {
-
-            $padding = str_repeat(' ', 9 - strlen($level));
-            $priority = $this->logLevels[$level];
-            $context = json_encode($context);
-            $level = strtoupper($level);
-
-
-            $parts = array(
-                'date'          => $this->getTimestamp(),
-                'level'         => $level,
-                'level-padding' => $padding,
-                'priority'      => $level,
-                'message'       => $message,
-                'context'       => $context,
-            );
-
-            $message = $this->options['logFormat'];
-
-            foreach ($parts as $part => $value) {
-                $message = str_replace($part, $value, $message);
-            }
-
-        } else {
-            $message = '[' . $this->getTimestamp() . ']' . '[' . $level . ']' . '[' . $message . ']';
-        }
-
-        if ($this->options['appendContext'] && !empty($context)) {
-            $message = $message . PHP_EOL . $this->indent($this->contextToString($context));
-        }
-
-        return $message . PHP_EOL;
-    }
-
-    /**
-     * Get the date and time in the specified format
-     *
-     * Format date and time set setting in $options property
-     *
-     * @return string
-     */
-    private function getTimestamp()
-    {
-        // generate date time
-        $date = new DateTime(date('Y-m-d H:i:s')); // 2017-03-26 19:37:54.449841
-
-        return $date->format($this->options['dateFormat']);
-    }
-
-    /**
-     * @param $context
-     * @return mixed
-     */
-    protected function contextToString($context)
-    {
-        $export = '';
-
-        foreach ($context as $key => $value) {
-
-            $export = $export . $key . ': ';
-            $export = $export . preg_replace(
-                [
-                    '/=>\s+([a-zA-Z])/im',
-                    '/array\(\s+\)/im',
-                    '/^  |\G  /m'
-                ], [
-                    '=> $1',
-                    'array()',
-                    '    '
-                ], str_replace('array (', 'array(', var_export($value, true)));
-
-            $export = $export . PHP_EOL;
-        }
-
-        return str_replace(['\\\\', '\\\''], ['\\', '\''], rtrim($export));
-    }
-
-    /**
-     * Set indent
-     *
-     * @param $string
-     * @param string $indent
-     * @return string
-     */
-    protected function indent($string, $indent = '')
-    {
-        return $indent . str_replace("\n", "\n" . $indent, $string);
     }
 }

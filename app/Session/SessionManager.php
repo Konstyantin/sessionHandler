@@ -121,6 +121,9 @@ class SessionManager
         return isset($_SESSION[$key]) ? true : false;
     }
 
+    /**
+     * Free all session variables
+     */
     public function unsetSession()
     {
         return session_unset();
@@ -149,8 +152,6 @@ class SessionManager
         $port = $redis->getPort();  // 6379
 
         $redis = $redis->createClient(); // return redis client with set params
-
-        $data = $redis->get('PHPREDIS_SESSION: 4evt23psmva5amdp4u7oiftio5');
 
         $handler = new SessionHandle($redis, $prefix);
 
