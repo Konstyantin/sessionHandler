@@ -91,7 +91,7 @@ class SessionHandle implements \SessionHandlerInterface
     {
         $key = $this->getRedisKey($session_id);
 
-        return $this->redis->get($key);
+        return $this->redis->get($key) ? $this->redis->get($key) : '';
     }
 
     /**

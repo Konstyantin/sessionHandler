@@ -7,7 +7,10 @@
  */
 
 namespace App;
+
 use App\Logger\Logger;
+use App\Redis\RedisClient;
+use App\Session\SessionManager;
 
 /**
  * Class Controller
@@ -16,20 +19,48 @@ use App\Logger\Logger;
 abstract class Controller
 {
     /**
+     * Project path
+     *
+     * @var string $path
+     */
+    protected $path = '/kostya.nagula/project/sessionHandler/';
+
+    /**
+     * SessionManager
+     *
+     * @var SessionManager|bool
+     */
+    protected $session = false;
+
+    /**
+     * Controller constructor.
+     *
+     * Init session manager
+     */
+    public function __construct()
+    {
+        $redis = new RedisClient();
+
+        $this->session = new SessionManager($redis);
+    }
+
+    /**
      * Return redirect response to the given URL
      *
      * @param string $url
      */
     protected function redirect(string $url)
     {
-        return header('Location: ' . $url);
+        return header('Location: ' . $this->path . $url);
     }
 
     /**
      * Return a render view
      *
      * @param string $view
-     * @param $data
+     * @param null $data
+     *
+     * @return bool
      */
     protected function render(string $view, $data = null)
     {
@@ -40,16 +71,36 @@ abstract class Controller
             require_once ($path);
             require_once (ROOT . '/app/layout/footer.phtml');   // include footer layout
         }
+
+        return false;
     }
 
     /**
-     * Return logger component
+     * Get send form data if data was send
      *
-     * @return Logger
+     * @return bool
      */
-    protected function logger()
+    protected function getSendData()
     {
-        $logger = new Logger(ROOT . '/logs');
-        return $logger;
+        // check submit form
+        if ($this->isSubmit()) {
+
+            $data['key'] = $_POST['key'];       // key
+            $data['value'] = $_POST['value'];   // value
+
+            return $data; // array data
+        }
+
+        return false;
+    }
+
+    /**
+     * Check is submitted form or not
+     *
+     * @return bool
+     */
+    protected function isSubmit()
+    {
+        return isset($_POST['submit']) ? true : false;
     }
 }

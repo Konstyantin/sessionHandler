@@ -9,7 +9,8 @@
 namespace Acme\Controller;
 
 use App\Controller;
-use App\Logger\Logger;
+use App\Redis\RedisClient;
+use App\Session\SessionManager;
 
 /**
  * Class IndexController
@@ -17,10 +18,46 @@ use App\Logger\Logger;
  */
 class IndexController extends Controller
 {
-    public function indexAction()
+    public function createAction()
     {
-        $this->logger()->info('test');
+        $data = $this->getSendData();
 
-        $this->render('index');
+        // sended data
+        if ($data) {
+
+            $key = $data['key'];       // session key
+            $value = $data['value'];    // session value
+
+            $this->session->set($key, $value);
+
+            return $this->redirect('/create');
+        }
+
+        return $this->render('create');
+    }
+
+    /**
+     * List session data
+     *
+     * @return bool
+     */
+    public function listAction()
+    {
+        // session data as array
+        $data = $this->session->getListData();
+
+        return $this->render('list', $data);
+    }
+
+    /**
+     * Delete session data by $key
+     *
+     * @param $key
+     */
+    public function deleteAction($key)
+    {
+        $this->session->unsetKey($key);
+
+        return $this->redirect('/create');
     }
 }

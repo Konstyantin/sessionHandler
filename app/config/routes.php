@@ -11,5 +11,7 @@
  * Store route
  */
 return [
-    'index' => 'index/index',
+    'create' => 'index/create',
+    'list'  => 'index/list',
+    'delete/' => 'index/delete/$1',
 ];
