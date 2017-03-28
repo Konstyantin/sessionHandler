@@ -10,8 +10,6 @@ namespace App\Session;
 
 use App\Redis\RedisClient;
 use App\Session\SessionHandle;
-use App\Logger\Logger;
-use App\Session\SessionEventMessage;
 
 /**
  * Class SessionWrapper
@@ -20,30 +18,16 @@ use App\Session\SessionEventMessage;
 class SessionManager
 {
     /**
-     * @var Logger component for logger event
-     */
-    private $logger;
-
-    /**
      * SessionWrapper constructor.
      * @param RedisClient $redis
      */
     public function __construct(RedisClient $redis, string $prefix = 'PHPREDIS_SESSION: ')
     {
-        $this->logger = new Logger(ROOT . '/logs');
-
         $this->setConfig($redis, $prefix);
 
         $this->start();
     }
 
-    /**
-     * Init logger component for register session event
-     */
-    private function loggerInit()
-    {
-        return $this->logger = new Logger(ROOT . '/logs');
-    }
 
     /**
      * Starting session
@@ -54,7 +38,6 @@ class SessionManager
     {
         if ($this->status() !== 2) {
             session_start();
-            $this->logger->info(SessionEventMessage::SESSION_START);
         }
     }
     /**
@@ -67,8 +50,6 @@ class SessionManager
         if ($this->status() !== 0) {
             $this->unsetSession();
             setcookie(session_name(),'',0,'/');
-
-            $this->logger->info(SessionEventMessage::SESSION_STOP);
         }
     }
 
@@ -89,8 +70,6 @@ class SessionManager
      */
     public function getLifetime()
     {
-        $this->logger->info(SessionEventMessage::SESSION_LIFE);
-
         return ini_get('session.gc_maxlifetime');
     }
 
@@ -106,8 +85,6 @@ class SessionManager
      */
     public function status()
     {
-        $this->logger->info(SessionEventMessage::SESSION_STATUS);
-
         return session_status();
     }
 
@@ -122,8 +99,6 @@ class SessionManager
         $_SESSION[$key] = $value;
 
         $setterValue = 'key = ' . $key . ', value = ' . $value;
-
-        $this->logger->info(SessionEventMessage::SESSION_SET . $setterValue);
     }
 
     /**
@@ -136,8 +111,6 @@ class SessionManager
     {
         $getterValue = 'key = ' . $key;
 
-        $this->logger->info(SessionEventMessage::SESSION_GET . $getterValue);
-
         return $this->checkExist($key) ? $_SESSION[$key] : false;
     }
 
@@ -149,7 +122,6 @@ class SessionManager
      */
     public function checkExist(string $key)
     {
-        $this->logger->info(SessionEventMessage::SESSION_CHECK_EXIST);
         return isset($_SESSION[$key]) ? true : false;
     }
 
@@ -158,7 +130,6 @@ class SessionManager
      */
     public function unsetSession()
     {
-        $this->logger->info(SessionEventMessage::SESSION_UNSET);
         return session_unset();
     }
 
@@ -171,7 +142,6 @@ class SessionManager
     {
         if ($this->checkExist($key)) {
             unset($_SESSION[$key]);
-            $this->logger->info(SessionEventMessage::SESSION_UNSET_KEY . $key);
         }
     }
 
@@ -208,8 +178,6 @@ class SessionManager
         $sessionPath = 'tcp://' . $host . ':' . $port;  // tcp://127.0.0.1:6379
 
         ini_set('session.save_path', $sessionPath);
-
-        $this->logger->info(SessionEventMessage::SESSION_SAVE_PATH);
     }
 
     /**
@@ -224,5 +192,15 @@ class SessionManager
         session_decode($data);
 
         return $_SESSION;
+    }
+
+    /**
+     * Destroys all data registered to a session
+     *
+     * @return bool
+     */
+    public function destroy()
+    {
+        return session_destroy();
     }
 }

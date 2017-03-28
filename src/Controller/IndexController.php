@@ -9,28 +9,41 @@
 namespace Acme\Controller;
 
 use App\Controller;
-use App\Redis\RedisClient;
-use App\Session\SessionManager;
 
 /**
  * Class IndexController
+ *
  * @package Acme\Controller
  */
 class IndexController extends Controller
 {
+    /**
+     * Create new session data
+     *
+     * @return resource|bool
+     */
     public function createAction()
     {
         $data = $this->getSendData();
 
-        // sended data
-        if ($data) {
+        if ($this->isSubmit()) {
+            // sended data
+            $data = $this->getSendData();
 
-            $key = $data['key'];       // session key
-            $value = $data['value'];    // session value
+            if ($data) {
 
-            $this->session->set($key, $value);
+                $key = $data['key'];        // session key
+                $value = $data['value'];    // session value
 
-            return $this->redirect('/create');
+                // set data by key and value
+                $this->session->set($key, $value);
+
+                return $this->redirect('/list');
+            }
+
+            $message = $this->setFlashMessage('data is empty');
+            return $this->render('create', $message);
+
         }
 
         return $this->render('create');
@@ -50,9 +63,24 @@ class IndexController extends Controller
     }
 
     /**
+     * Destroys all data registered to a session
+     *
+     * @return resource redirect to create page
+     */
+    public function destroyAction()
+    {
+        //destroy all session data
+        $this->session->destroy();
+
+        return $this->redirect('/create');
+    }
+
+    /**
      * Delete session data by $key
      *
      * @param $key
+     *
+     * @return resource redirect to create page
      */
     public function deleteAction($key)
     {

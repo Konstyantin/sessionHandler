@@ -9,6 +9,8 @@
 
 namespace App\Session;
 
+use App\Logger\Logger;
+
 /**
  * Class SessionHandle
  * @package App\Session
@@ -37,6 +39,13 @@ class SessionHandle implements \SessionHandlerInterface
     protected $prefix;
 
     /**
+     * Logger component
+     *
+     * @var Logger
+     */
+    protected $logger;
+
+    /**
      * SessionHandle constructor.
      * @param \Redis $redis
      * @param string $prefix
@@ -47,6 +56,7 @@ class SessionHandle implements \SessionHandlerInterface
         $this->prefix = $prefix;
 
         $this->ttl = $lifetime;
+        $this->logger = new Logger(ROOT . '/logs');
     }
 
     /**
@@ -54,6 +64,8 @@ class SessionHandle implements \SessionHandlerInterface
      */
     public function open($save_path, $name)
     {
+        $this->logger->info(SessionEventMessage::SESSION_START);
+
         return true;
     }
 
@@ -62,6 +74,10 @@ class SessionHandle implements \SessionHandlerInterface
      */
     public function close()
     {
+        $this->logger->info(SessionEventMessage::SESSION_CLOSE);
+
+        unset($this->redis);
+
         return true;
     }
 
@@ -70,6 +86,7 @@ class SessionHandle implements \SessionHandlerInterface
      */
     public function gc($maxlifetime)
     {
+        $this->logger->info(SessionEventMessage::SESSION_CLEANUP);
         return true;
     }
 
@@ -78,6 +95,8 @@ class SessionHandle implements \SessionHandlerInterface
      */
     public function destroy($session_id)
     {
+        $this->logger->info(SessionEventMessage::SESSION_DESTROY);
+
         $key = $this->getRedisKey($session_id);
         $this->redis->del($key);
 
@@ -90,6 +109,8 @@ class SessionHandle implements \SessionHandlerInterface
     public function read($session_id)
     {
         $key = $this->getRedisKey($session_id);
+
+        $this->logger->info(SessionEventMessage::SESSION_READ . $key);
 
         return $this->redis->get($key) ? $this->redis->get($key) : '';
     }
@@ -105,6 +126,8 @@ class SessionHandle implements \SessionHandlerInterface
 
         $this->redis->set($key, $session_data);
 
+        $this->logger->info(SessionEventMessage::SESSION_WRITE . $session_data);
+
         return true;
     }
 
@@ -117,13 +140,5 @@ class SessionHandle implements \SessionHandlerInterface
     protected function getRedisKey(string $id)
     {
         return $this->prefix . $id;     // PHPREDIS_SESSION . session_id
-    }
-
-    /**
-     * SessionHandler destructor magic method
-     */
-    public function __destruct()
-    {
-        $this->close();
     }
 }

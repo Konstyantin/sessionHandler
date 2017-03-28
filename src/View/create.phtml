@@ -1,7 +1,14 @@
 <div class="container">
     <div class="row">
         <div class="col-lg-6 col-lg-offset-3 session-form">
-            <h2 class="text-center">Index controller</h2>
+            <h2 class="text-center">Create session data</h2>
+            <?php if (isset($data)): ?>
+                <div class="alert alert-danger fade in alert-dismissable">
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                    <p><?php echo $data; ?></p>
+                </div>
+            <?php endif;?>
+
             <form action="#" method="post">
                 <div class="form-group">
                     <input type="text" name="key" class="form-control" id="key" placeholder="Key:">

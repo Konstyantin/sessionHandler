@@ -14,4 +14,6 @@ return [
     'create' => 'index/create',
     'list'  => 'index/list',
     'delete/' => 'index/delete/$1',
+//    'delete/([0-9]+)' => 'index/delete/$1',
+    'destroy' => 'index/destroy',
 ];

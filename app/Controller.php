@@ -8,7 +8,6 @@
 
 namespace App;
 
-use App\Logger\Logger;
 use App\Redis\RedisClient;
 use App\Session\SessionManager;
 
@@ -23,7 +22,7 @@ abstract class Controller
      *
      * @var string $path
      */
-    protected $path = '/kostya.nagula/project/sessionHandler/';
+    protected $path = '/kostya.nagula/project/sessionHandler';
 
     /**
      * SessionManager
@@ -55,6 +54,16 @@ abstract class Controller
     }
 
     /**
+     * Set custom redis client
+     *
+     * @param RedisClient $redisClient
+     */
+    protected function setRedisClient(RedisClient $redisClient)
+    {
+        $this->session  = new SessionManager($redisClient);
+    }
+
+    /**
      * Return a render view
      *
      * @param string $view
@@ -67,9 +76,9 @@ abstract class Controller
         // path to directory which is store view files
         $path = ROOT . '/src/View/' . $view . '.phtml';
         if (file_exists($path)) {
-            require_once (ROOT . '/app/layout/header.phtml');   // include header layout
-            require_once ($path);
-            require_once (ROOT . '/app/layout/footer.phtml');   // include footer layout
+            require_once(ROOT . '/app/layout/header.phtml');   // include header layout
+            require_once($path);
+            require_once(ROOT . '/app/layout/footer.phtml');   // include footer layout
         }
 
         return false;
@@ -82,16 +91,40 @@ abstract class Controller
      */
     protected function getSendData()
     {
-        // check submit form
-        if ($this->isSubmit()) {
+        if (isset($_POST['key']) && isset($_POST['value'])) {
 
-            $data['key'] = $_POST['key'];       // key
-            $data['value'] = $_POST['value'];   // value
+            if (!$this->emptyData($_POST['key'])) {
+                $data['key'] = $_POST['key'];       // key
+            }
 
-            return $data; // array data
+            if (!$this->emptyData($_POST['value'])) {
+                $data['value'] = $_POST['value'];   // value
+            }
+
+            return isset($data) ? $data : false;    // array data
         }
+    }
 
-        return false;
+    /**
+     * Return flash message
+     *
+     * @param string $message
+     * @return string
+     */
+    protected function setFlashMessage(string $message)
+    {
+        return (string)$message;
+    }
+
+    /**
+     * Check data is empty
+     *
+     * @param string $data
+     * @return bool
+     */
+    private function emptyData(string $data)
+    {
+        return (empty($data)) ? true : false;
     }
 
     /**
