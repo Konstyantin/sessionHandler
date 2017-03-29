@@ -8,6 +8,7 @@
 
 namespace App\Session;
 
+use App\Logger\Logger;
 use App\Redis\RedisClient;
 use App\Session\SessionHandle;
 
@@ -18,16 +19,27 @@ use App\Session\SessionHandle;
 class SessionManager
 {
     /**
+     * @var string $prefix session prefix
+     */
+    private $prefix;
+
+    /**
+     * @var Logger $logger
+     */
+    private $logger;
+
+    /**
      * SessionWrapper constructor.
      * @param RedisClient $redis
      */
     public function __construct(RedisClient $redis, string $prefix = 'PHPREDIS_SESSION: ')
     {
+        $this->logger = new Logger(ROOT . '/logs');
+
         $this->setConfig($redis, $prefix);
 
         $this->start();
     }
-
 
     /**
      * Starting session
@@ -40,6 +52,7 @@ class SessionManager
             session_start();
         }
     }
+
     /**
      * Session stop
      *
@@ -157,7 +170,12 @@ class SessionManager
 
         $redis = $redis->createClient(); // return redis client with set params
 
-        $handler = new SessionHandle($redis, $prefix);
+        $logger = $this->logger;
+
+        $handler = new SessionHandle($redis, $logger, $prefix);
+
+        // set prefix session
+        $this->prefix = $prefix;
 
         // set redis session handler as tool work with session
         session_set_save_handler($handler, true);
@@ -195,6 +213,16 @@ class SessionManager
     }
 
     /**
+     * Get session id
+     *
+     * @return string
+     */
+    public function getId()
+    {
+        return (string) session_id();
+    }
+
+    /**
      * Destroys all data registered to a session
      *
      * @return bool
@@ -202,5 +230,17 @@ class SessionManager
     public function destroy()
     {
         return session_destroy();
+    }
+
+    /**
+     * Get prefix key
+     *
+     * @return string $prefixKey
+     */
+    public function getPrefixKey()
+    {
+        $prefixKey = $this->prefix . $this->getId();
+
+        return $prefixKey;
     }
 }

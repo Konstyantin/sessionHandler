@@ -87,21 +87,28 @@ abstract class Controller
     /**
      * Get send form data if data was send
      *
-     * @return bool
+     * @return bool|array
      */
     protected function getSendData()
     {
         if (isset($_POST['key']) && isset($_POST['value'])) {
 
+            // check valid form field key
             if (!$this->emptyData($_POST['key'])) {
                 $data['key'] = $_POST['key'];       // key
             }
 
+            // check valid form filed value
             if (!$this->emptyData($_POST['value'])) {
                 $data['value'] = $_POST['value'];   // value
             }
 
-            return isset($data) ? $data : false;    // array data
+            // check both form field is valid
+            if (isset($data['value']) && isset($data['key'])) {
+                return $data;
+            }
+
+            return false;
         }
     }
 

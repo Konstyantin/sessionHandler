@@ -17,7 +17,6 @@ namespace App\Session;
 final class SessionEventMessage
 {
     const SESSION_START         = 'Session start';
-    const SESSION_STOP          = 'Session stop';
     const SESSION_WRITE         = 'Write to session ';
     const SESSION_READ          = 'Read form session ';
     const SESSION_UNSET_KEY     = 'Session unset key ';

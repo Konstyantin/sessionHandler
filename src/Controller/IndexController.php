@@ -41,6 +41,7 @@ class IndexController extends Controller
                 return $this->redirect('/list');
             }
 
+            // error message if send data is empty
             $message = $this->setFlashMessage('data is empty');
             return $this->render('create', $message);
 

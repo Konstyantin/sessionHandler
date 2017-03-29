@@ -50,13 +50,13 @@ class SessionHandle implements \SessionHandlerInterface
      * @param \Redis $redis
      * @param string $prefix
      */
-    public function __construct(\Redis $redis, $prefix = 'PHPREDIS_SESSION: ', $lifetime = 1440)
+    public function __construct(\Redis $redis, Logger $logger, $prefix = 'PHPREDIS_SESSION: ', $lifetime = 1440)
     {
         $this->redis = $redis;
         $this->prefix = $prefix;
 
         $this->ttl = $lifetime;
-        $this->logger = new Logger(ROOT . '/logs');
+        $this->logger = $logger;
     }
 
     /**
@@ -87,6 +87,7 @@ class SessionHandle implements \SessionHandlerInterface
     public function gc($maxlifetime)
     {
         $this->logger->info(SessionEventMessage::SESSION_CLEANUP);
+
         return true;
     }
 
@@ -95,10 +96,10 @@ class SessionHandle implements \SessionHandlerInterface
      */
     public function destroy($session_id)
     {
-        $this->logger->info(SessionEventMessage::SESSION_DESTROY);
-
         $key = $this->getRedisKey($session_id);
         $this->redis->del($key);
+
+        $this->logger->info(SessionEventMessage::SESSION_DESTROY);
 
         return true;
     }
@@ -137,7 +138,7 @@ class SessionHandle implements \SessionHandlerInterface
      * @param string $id
      * @return string
      */
-    protected function getRedisKey(string $id)
+    public function getRedisKey(string $id)
     {
         return $this->prefix . $id;     // PHPREDIS_SESSION . session_id
     }
