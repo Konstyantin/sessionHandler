@@ -48,7 +48,7 @@ class SessionManager
      */
     public function start()
     {
-        if ($this->status() !== 2) {
+        if ($this->status() !== PHP_SESSION_ACTIVE) {
             session_start();
         }
     }

@@ -29,6 +29,7 @@ class Router
         $routePath = ROOT . '/app/config/routes.php';
         $this->routes = include($routePath);
     }
+
     /**
      * Get URI
      *
@@ -40,6 +41,7 @@ class Router
             return trim($_SERVER['REQUEST_URI'], '/');
         }
     }
+
     /**
      * Initiate Router
      */

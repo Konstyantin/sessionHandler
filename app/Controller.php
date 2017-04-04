@@ -18,13 +18,6 @@ use App\Session\SessionManager;
 abstract class Controller
 {
     /**
-     * Project path
-     *
-     * @var string $path
-     */
-    protected $path = '/kostya.nagula/project/sessionHandler';
-
-    /**
      * SessionManager
      *
      * @var SessionManager|bool
@@ -50,7 +43,7 @@ abstract class Controller
      */
     protected function redirect(string $url)
     {
-        return header('Location: ' . $this->path . $url);
+        return header('Location: ' . ROOT_DIR . $url);
     }
 
     /**
